@@ -1,0 +1,21 @@
+{
+  "device_id": "android-phone",
+  "cursor": 1842,
+  "mutations": [
+    {
+      "local_seq": 157,
+      "hlc": { "wall_ms": 1787935800123, "counter": 2 },
+      "entity_type": "episode_playback",
+      "entity_key": "ep_6f1c",
+      "payload": {
+        "intent": "playback_pause",
+        "position_ms": 1264000,
+        "duration_ms": 3600000,
+        "played": false,
+        "feed_url": "https://example.com/feed.xml",
+        "guid": "episode-guid"
+      }
+    }
+  ]
+}
+

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://statesync.local/schemas/snapshot.schema.json",
+  "title": "StateSync Lite Snapshot v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol_version",
+    "base_server_seq",
+    "created_at",
+    "subscriptions",
+    "episode_playback_states",
+    "queue_entries",
+    "aliases",
+    "tombstones"
+  ],
+  "properties": {
+    "protocol_version": { "const": 1 },
+    "base_server_seq": { "type": "integer", "minimum": 0 },
+    "created_at": { "type": "integer", "minimum": 0 },
+    "subscriptions": { "$ref": "#/$defs/objectArray" },
+    "episode_playback_states": { "$ref": "#/$defs/objectArray" },
+    "queue_entries": { "$ref": "#/$defs/objectArray" },
+    "aliases": { "$ref": "#/$defs/objectArray" },
+    "tombstones": { "$ref": "#/$defs/objectArray" }
+  },
+  "$defs": {
+    "objectArray": {
+      "type": "array",
+      "maxItems": 50000,
+      "items": { "type": "object" }
+    }
+  }
+}
+

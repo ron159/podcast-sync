@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://statesync.local/schemas/sync-request.schema.json",
+  "title": "StateSync Lite v1 request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["device_id", "cursor", "mutations"],
+  "properties": {
+    "device_id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9._:-]+$" },
+    "cursor": { "type": "integer", "minimum": 0 },
+    "mutations": {
+      "type": "array",
+      "maxItems": 500,
+      "items": { "$ref": "#/$defs/mutation" }
+    }
+  },
+  "$defs": {
+    "hlc": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["wall_ms", "counter"],
+      "properties": {
+        "wall_ms": { "type": "integer", "minimum": 0 },
+        "counter": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "subscriptionPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["feed_url", "subscribed"],
+      "properties": {
+        "feed_key": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "feed_url": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "subscribed": { "type": "boolean" }
+      }
+    },
+    "playbackPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["intent", "position_ms", "played"],
+      "properties": {
+        "episode_key": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "intent": {
+          "enum": ["checkpoint", "playback_pause", "seek", "mark_played", "mark_unplayed"]
+        },
+        "position_ms": { "type": "integer", "minimum": 0 },
+        "duration_ms": { "type": "integer", "minimum": 0 },
+        "played": { "type": "boolean" },
+        "feed_url": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "guid": { "type": "string", "minLength": 1, "maxLength": 2048 }
+      }
+    },
+    "queuePayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["order_token", "present"],
+      "properties": {
+        "episode_key": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "order_token": { "type": "string", "minLength": 16, "maxLength": 16, "pattern": "^(?:[0-9a-f]*[1-9a-f][0-9a-f]*)$" },
+        "present": { "type": "boolean" }
+      }
+    },
+    "baseMutation": {
+      "type": "object",
+      "required": ["local_seq", "hlc", "entity_type", "entity_key", "payload"],
+      "properties": {
+        "local_seq": { "type": "integer", "minimum": 0 },
+        "hlc": { "$ref": "#/$defs/hlc" },
+        "entity_key": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^\\S+$" }
+      }
+    },
+    "mutation": {
+      "oneOf": [
+        {
+          "allOf": [
+            { "$ref": "#/$defs/baseMutation" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "local_seq": true,
+                "hlc": true,
+                "entity_key": true,
+                "entity_type": { "const": "subscription" },
+                "payload": { "$ref": "#/$defs/subscriptionPayload" }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/baseMutation" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "local_seq": true,
+                "hlc": true,
+                "entity_key": true,
+                "entity_type": { "const": "episode_playback" },
+                "payload": { "$ref": "#/$defs/playbackPayload" }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/baseMutation" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "local_seq": true,
+                "hlc": true,
+                "entity_key": true,
+                "entity_type": { "const": "queue_entry" },
+                "payload": { "$ref": "#/$defs/queuePayload" }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

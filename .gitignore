@@ -1,0 +1,13 @@
+/target/
+:memory:
+/.env
+/.env.*
+!.env.example
+/data/
+/backups/
+/secrets/
+*.db
+*.db-shm
+*.db-wal
+*.pem
+*.key

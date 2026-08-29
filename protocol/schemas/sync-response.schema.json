@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://statesync.local/schemas/sync-response.schema.json",
+  "title": "StateSync Lite v1 response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["accepted_local_seq", "next_cursor", "changes"],
+  "properties": {
+    "accepted_local_seq": { "type": "integer", "minimum": 0 },
+    "next_cursor": { "type": "integer", "minimum": 0 },
+    "changes": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["server_seq", "device_id", "hlc", "entity_type", "entity_key", "payload"],
+        "properties": {
+          "server_seq": { "type": "integer", "minimum": 1 },
+          "device_id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9._:-]+$" },
+          "hlc": { "$ref": "sync-request.schema.json#/$defs/hlc" },
+          "entity_type": { "enum": ["subscription", "episode_playback", "queue_entry"] },
+          "entity_key": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "payload": {
+            "oneOf": [
+              { "$ref": "sync-request.schema.json#/$defs/subscriptionPayload" },
+              { "$ref": "sync-request.schema.json#/$defs/playbackPayload" },
+              { "$ref": "sync-request.schema.json#/$defs/queuePayload" }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

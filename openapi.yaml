@@ -1,0 +1,156 @@
+openapi: 3.1.0
+info:
+  title: StateSync Lite NAS API
+  version: 1.0.0
+  description: Single-user operation relay for subscription, playback and queue state.
+servers:
+  - url: https://podcast-sync.example.net
+paths:
+  /healthz:
+    get:
+      operationId: health
+      security: []
+      responses:
+        "200":
+          description: SQLite is available.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { const: ok }
+        "503":
+          description: SQLite is unavailable.
+  /v1/sync:
+    post:
+      operationId: synchronize
+      summary: Atomically push local mutations and pull ordered remote changes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./protocol/schemas/sync-request.schema.json
+      responses:
+        "200":
+          description: Accepted local sequence and remote changes after the supplied cursor.
+          content:
+            application/json:
+              schema:
+                $ref: ./protocol/schemas/sync-response.schema.json
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "413": { $ref: "#/components/responses/PayloadTooLarge" }
+        "422": { $ref: "#/components/responses/InvalidRequest" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /v1/snapshots/latest:
+    get:
+      operationId: latestSnapshot
+      responses:
+        "200":
+          description: Latest retained snapshot.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [snapshot_id, snapshot]
+                properties:
+                  snapshot_id: { type: integer, minimum: 1 }
+                  snapshot:
+                    $ref: ./protocol/schemas/snapshot.schema.json
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /v1/snapshots:
+    put:
+      operationId: putSnapshot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./protocol/schemas/snapshot.schema.json
+      responses:
+        "201":
+          description: Snapshot retained.
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "413": { $ref: "#/components/responses/PayloadTooLarge" }
+        "422": { $ref: "#/components/responses/InvalidRequest" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /v1/devices/{device_id}:
+    delete:
+      operationId: revokeDevice
+      parameters:
+        - name: device_id
+          in: path
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 128, pattern: "^[A-Za-z0-9._:-]+$" }
+      responses:
+        "204":
+          description: Device ID is revoked. The operation is idempotent.
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/InvalidRequest" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+security:
+  - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    Error:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+  responses:
+    Unauthorized:
+      description: Missing or invalid Bearer Token.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: Device is revoked or active device limit is reached.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Conflict:
+      description: Local sequence conflict or cursor ahead of server history.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    InvalidRequest:
+      description: Request is outside the StateSync Lite v1 whitelist.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    PayloadTooLarge:
+      description: Request exceeds 1 MiB.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    RateLimited:
+      description: Protected request rate exceeded.
+      headers:
+        Retry-After:
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: No snapshot has been uploaded.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
